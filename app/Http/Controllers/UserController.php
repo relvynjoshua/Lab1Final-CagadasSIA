@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Response;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Traits\ApiResponser;
+use DB;
 
 Class UserController extends Controller 
 {
+    use ApiResponser;
     private $request;
     
     public function __construct(Request $request)
@@ -17,8 +20,12 @@ Class UserController extends Controller
     // Get/show users
     public function getUsers()
     {
-        $users = User::all();
-        return response()->json($users, 200);
+        //$users = User::all();
+        //return response()->json($users, 200);
+
+        $users = DB::connection('mysql')
+        ->select("Select * from tbluser");
+        return $this->successResponse($users);
     }
 
     // Add users
@@ -53,9 +60,13 @@ Class UserController extends Controller
         $user = User::findOrFail($id);
         $user->fill($request->all());
     
-        $user->save();
+        if ($user->isClean()) {
+            return $this->errorResponse("At least one value must change", 
+            Response::HTTP_UNPROCESSABLE_ENTITY);
+        } 
 
-        return $user;
+            $user->save();
+            return $this->successResponse($user);
     }
 
     // Delete user
@@ -63,6 +74,13 @@ Class UserController extends Controller
     {
         $user = User::findOrFail($id);
         $user->delete();
+        return $this->successResponse('Successfully deleted!');
+    }
+
+    // Search user
+    public function searchUsers($id){
+        $user = User::findOrFail($id);
+        return $this->successResponse($user);
     }
 }
     
